@@ -9,4 +9,5 @@ services:
       - ./uploads:/app/uploads
     environment:
       - PYTHONUNBUFFERED=1
+      - RAPID7_API_KEY=your_actual_api_key_here
     restart: unless-stopped 

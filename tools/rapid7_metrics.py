@@ -1,5 +1,5 @@
 import json
-import subprocess
+import requests
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 
@@ -8,6 +8,10 @@ class Rapid7Metrics:
         self.api_key = api_key
         self.investigation_url = "https://us3.api.insight.rapid7.com/idr/v1/investigations"
         self.comments_url = "https://us3.api.insight.rapid7.com/idr/v1/comments?target="
+        self.headers = {
+            "X-Api-Key": api_key,
+            "Content-Type": "application/json"
+        }
 
     def fetch_investigations(self, start_date: str, end_date: str) -> List[Dict]:
         """Fetches investigations from Rapid7 API based on date range."""
@@ -20,15 +24,12 @@ class Rapid7Metrics:
         
         while True:
             url = f"{self.investigation_url}?index={index}&size={size}&statuses=OPEN,INVESTIGATING,CLOSED&start_time={start_time}&end_time={end_time}"
-            command = f'curl -s -H "X-Api-Key: {self.api_key}" -H "Content-Type: application/json" "{url}"'
             
-            response = subprocess.run(command, shell=True, capture_output=True, text=True)
-
-            if response.returncode != 0:
-                raise Exception(f"Error: Curl command failed with return code {response.returncode}")
-
             try:
-                data = json.loads(response.stdout)
+                response = requests.get(url, headers=self.headers)
+                response.raise_for_status()  # Raise an exception for bad status codes
+                
+                data = response.json()
                 investigations = data.get("data", [])
                 
                 if not investigations:  # No more investigations to fetch
@@ -42,23 +43,20 @@ class Rapid7Metrics:
                     
                 index += size  # Move to next page
                 
-            except json.JSONDecodeError:
-                raise Exception("Error: Unable to parse JSON from investigations API.")
+            except requests.exceptions.RequestException as e:
+                raise Exception(f"Error fetching investigations: {str(e)}")
 
         return all_investigations
 
     def fetch_comment_times(self, rrn: str) -> Tuple[Optional[str], Optional[str]]:
         """Fetches first and last comment timestamps for an investigation."""
         url = f"{self.comments_url}{rrn}"
-        command = f'curl -s -H "X-Api-Key: {self.api_key}" -H "Content-Type: application/json" "{url}"'
         
-        response = subprocess.run(command, shell=True, capture_output=True, text=True)
-
-        if response.returncode != 0:
-            return None, None
-
         try:
-            data = json.loads(response.stdout)
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            
+            data = response.json()
             comments = data.get("data", [])
             valid_comments = [c for c in comments if 'created_time' in c]
 
@@ -67,7 +65,7 @@ class Rapid7Metrics:
 
             return valid_comments[0]['created_time'], valid_comments[1]['created_time']
         
-        except json.JSONDecodeError:
+        except requests.exceptions.RequestException:
             return None, None
 
     @staticmethod

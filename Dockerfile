@@ -24,5 +24,13 @@ RUN mkdir -p uploads
 # Expose the port the app runs on
 EXPOSE 8000
 
+# Add a check for the environment variable
+RUN echo "Checking environment variables..." && \
+    if [ -z "$RAPID7_API_KEY" ]; then \
+        echo "RAPID7_API_KEY is not set"; \
+    else \
+        echo "RAPID7_API_KEY is set"; \
+    fi
+
 # Command to run the application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"] 

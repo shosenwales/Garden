@@ -16,7 +16,23 @@ import io
 import pandas as pd
 
 # Load environment variables
+print("Current working directory:", os.getcwd())
+print("Looking for .env file...")
 load_dotenv()
+print("Environment variables loaded. RAPID7_API_KEY exists:", bool(os.getenv("RAPID7_API_KEY")))
+
+def get_api_key():
+    try:
+        with open('.env', 'r') as file:
+            for line in file:
+                if line.startswith('RAPID7_API_KEY='):
+                    return line.strip().split('=')[1]
+    except Exception as e:
+        print(f"Error reading .env file: {e}")
+    return None
+
+# Get API key
+RAPID7_API_KEY = get_api_key()
 
 app = FastAPI(title="Garden Tools")
 
@@ -92,19 +108,18 @@ async def rapid7_metrics_calculate(
     start_date: str = Form(...),
     end_date: str = Form(...)
 ):
-    api_key = os.getenv("RAPID7_API_KEY")
-    if not api_key:
+    if not RAPID7_API_KEY:
         return templates.TemplateResponse(
             "rapid7_metrics.html",
             {
                 "request": request,
                 "title": "Rapid7 Metrics",
-                "error": "Rapid7 API key not found in environment variables. Please set RAPID7_API_KEY in your .env file."
+                "error": "Rapid7 API key not found in .env file. Please set RAPID7_API_KEY in your .env file."
             }
         )
 
     try:
-        metrics = Rapid7Metrics(api_key)
+        metrics = Rapid7Metrics(RAPID7_API_KEY)
         results = metrics.calculate_metrics(start_date, end_date)
         
         if "error" in results:
