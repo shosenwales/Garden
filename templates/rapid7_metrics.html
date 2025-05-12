@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex items-center mb-6">
+        <a href="/" class="text-primary hover:text-blue-400 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+        </a>
+        <h2 class="text-2xl font-bold ml-4">Rapid7 Metrics Calculator</h2>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+        <form method="POST" class="space-y-4" id="metricsForm">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
+                    <input type="date" id="start_date" name="start_date" required
+                           class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div>
+                    <label for="end_date" class="block text-sm font-medium text-gray-300 mb-1">End Date</label>
+                    <input type="date" id="end_date" name="end_date" required
+                           class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+            </div>
+
+            <button type="submit" 
+                    class="w-full bg-primary hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition-colors">
+                Calculate Metrics
+            </button>
+        </form>
+
+        {% if error %}
+        <div class="mt-6 p-4 bg-red-900/50 border border-red-700 rounded-md">
+            <p class="text-red-200">{{ error }}</p>
+        </div>
+        {% endif %}
+
+        {% if results %}
+        <div class="mt-6 space-y-4">
+            <h3 class="text-xl font-semibold">Results</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-700 p-4 rounded-md">
+                    <p class="text-sm text-gray-400">Date Range</p>
+                    <p class="text-lg">{{ results.date_range }}</p>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-md">
+                    <p class="text-sm text-gray-400">Total Investigations</p>
+                    <p class="text-lg">{{ results.total_investigations }}</p>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-md">
+                    <p class="text-sm text-gray-400">Mean Time To Detect (MTTD)</p>
+                    <p class="text-lg">{{ results.mttd }}</p>
+                </div>
+                <div class="bg-gray-700 p-4 rounded-md">
+                    <p class="text-sm text-gray-400">Mean Time To Resolve (MTTR)</p>
+                    <p class="text-lg">{{ results.mttr }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 bg-gray-900/90 flex items-center justify-center z-50 hidden">
+    <div class="text-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary mx-auto mb-8"></div>
+        <div class="max-w-md mx-auto">
+            <div id="loadingJoke" class="text-xl mb-4"></div>
+            <p class="text-gray-400">Calculating metrics...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const jokes = [
+        {
+            question: "Why don't SOC analysts set up incident response at the beach? 🏖️",
+            answer: "Because it was too cloudy. ☁️"
+        },
+        {
+            question: "What's a SOC's favorite season? 🎣",
+            answer: "Phishing season. 🐟"
+        },
+        {
+            question: "Why do firewalls never get invited to SOC parties? 🎉",
+            answer: "Because they always block the connection! 🚫"
+        },
+        {
+            question: "What's the best way for a SOC to catch a rogue robot? 🤖",
+            answer: "Use a botnet. 🕸️"
+        },
+        {
+            question: "Why don't you play hide and seek with a SOC analyst? 🕵️",
+            answer: "Because their logs always find you. 📊"
+        }
+    ];
+
+    let currentJokeIndex = 0;
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingJoke = document.getElementById('loadingJoke');
+    const form = document.getElementById('metricsForm');
+
+    // Function to cycle through jokes
+    function cycleJoke() {
+        const joke = jokes[currentJokeIndex];
+        loadingJoke.innerHTML = `
+            <p class="text-white mb-2">${joke.question}</p>
+            <p class="text-primary">${joke.answer}</p>
+        `;
+        currentJokeIndex = (currentJokeIndex + 1) % jokes.length;
+    }
+
+    // Show loading overlay and start joke cycling when form is submitted
+    form.addEventListener('submit', () => {
+        loadingOverlay.classList.remove('hidden');
+        cycleJoke(); // Show first joke immediately
+        setInterval(cycleJoke, 5000); // Change joke every 5 seconds
+    });
+</script>
+{% endblock %} 

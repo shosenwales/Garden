@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-primary mb-6">PDF to Word Converter</h2>
+        
+        <div class="mb-8">
+            <p class="text-gray-300 mb-4">
+                Convert your PDF documents to Word format (.docx) easily. Simply upload your PDF file and download the converted Word document.
+            </p>
+        </div>
+
+        <form id="convertForm" class="space-y-6">
+            <div class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
+                <input type="file" 
+                       name="file" 
+                       accept=".pdf"
+                       class="hidden" 
+                       id="fileInput"
+                       onchange="updateFileName(this)">
+                <label for="fileInput" 
+                       class="cursor-pointer inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Choose PDF File
+                </label>
+                <p id="fileName" class="mt-2 text-sm text-gray-400"></p>
+            </div>
+
+            <div class="flex justify-center">
+                <button type="submit" 
+                        class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    Convert to Word
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function updateFileName(input) {
+    const fileName = input.files[0]?.name || 'No file chosen';
+    document.getElementById('fileName').textContent = fileName;
+}
+
+document.getElementById('convertForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    const fileInput = document.getElementById('fileInput');
+    
+    if (!fileInput.files[0]) {
+        alert('Please select a PDF file first');
+        return;
+    }
+    
+    formData.append('file', fileInput.files[0]);
+    
+    try {
+        const response = await fetch('/pdf-to-word/convert', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error('Conversion failed');
+        }
+        
+        // Get the filename from the Content-Disposition header
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const filename = contentDisposition
+            ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+            : 'converted.docx';
+        
+        // Create a blob from the response
+        const blob = await response.blob();
+        
+        // Create a download link and trigger it
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        
+    } catch (error) {
+        alert('Error converting file: ' + error.message);
+    }
+});
+</script>
+{% endblock %} 

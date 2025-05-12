@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold mb-4">SIEM Query Converter</h1>
+        <p class="text-gray-400 text-lg">Convert queries between different SIEM query languages</p>
+    </div>
+
+    <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+        <form method="POST" action="/query-converter" class="space-y-6">
+            <div>
+                <label for="source_language" class="block text-sm font-medium text-gray-300 mb-2">Source Query Language</label>
+                <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-primary" 
+                        id="source_language" name="source_language" required>
+                    <option value="spl" {% if source_language == 'spl' %}selected{% endif %}>Splunk SPL</option>
+                    <option value="leql" {% if source_language == 'leql' %}selected{% endif %}>Rapid7 LEQL</option>
+                    <option value="wql" {% if source_language == 'wql' %}selected{% endif %}>Wazuh WQL</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="query" class="block text-sm font-medium text-gray-300 mb-2">Query</label>
+                <textarea class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-primary" 
+                          id="query" name="query" rows="4" required 
+                          placeholder="Enter your query here...">{{ query if query else '' }}</textarea>
+            </div>
+            
+            <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                Convert
+            </button>
+        </form>
+
+        {% if error %}
+        <div class="mt-6 p-4 bg-red-900/50 border border-red-700 rounded-lg">
+            <p class="text-red-300">{{ error }}</p>
+        </div>
+        {% endif %}
+
+        {% if results %}
+        <div class="mt-8">
+            <h2 class="text-2xl font-semibold mb-4">Conversion Results</h2>
+            <div class="space-y-4">
+                {% for lang, query in results.items() %}
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="text-primary font-semibold">{{ lang.upper() }}</div>
+                        <button onclick="copyToClipboard('{{ lang }}-query')" 
+                                class="text-gray-400 hover:text-primary transition-colors"
+                                title="Copy to clipboard">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <pre id="{{ lang }}-query" class="bg-gray-800 p-4 rounded-lg overflow-x-auto"><code class="text-gray-300">{{ query }}</code></pre>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    const text = element.textContent;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        // Show a temporary success message
+        const button = element.previousElementSibling.querySelector('button');
+        const originalTitle = button.getAttribute('title');
+        button.setAttribute('title', 'Copied!');
+        button.classList.add('text-green-500');
+        
+        setTimeout(() => {
+            button.setAttribute('title', originalTitle);
+            button.classList.remove('text-green-500');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+    });
+}
+</script>
+{% endblock %} 
