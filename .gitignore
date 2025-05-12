@@ -38,4 +38,9 @@ Thumbs.db
 
 # Project specific
 uploads/*
-!uploads/.gitkeep 
+!uploads/.gitkeep
+
+# Docker
+.docker/
+docker-compose.override.yml
+*.env 
