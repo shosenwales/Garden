@@ -21,18 +21,33 @@ print("Looking for .env file...")
 load_dotenv()
 print("Environment variables loaded. RAPID7_API_KEY exists:", bool(os.getenv("RAPID7_API_KEY")))
 
-def get_api_key():
+def get_api_keys():
+    api_keys = {}
     try:
+        print("Reading .env file for API keys...")
         with open('.env', 'r') as file:
             for line in file:
-                if line.startswith('RAPID7_API_KEY='):
-                    return line.strip().split('=')[1]
+                print(f"Reading line: {line.strip()}")
+                if line.startswith('RAPID7_API_KEY_CLIENT'):
+                    parts = line.strip().split('=')
+                    if len(parts) == 2:
+                        client_num = parts[0].replace('RAPID7_API_KEY_CLIENT', '')
+                        # Get the corresponding API URL for this client
+                        api_url = os.getenv(f'RAPID7_API_URL_CLIENT{client_num}', 'https://us3.api.insight.rapid7.com')
+                        api_keys[f"Client {client_num}"] = {
+                            'api_key': parts[1],
+                            'api_url': api_url
+                        }
+                        print(f"Found API key for Client {client_num} with URL {api_url}")
     except Exception as e:
         print(f"Error reading .env file: {e}")
-    return None
+    
+    print(f"Found {len(api_keys)} API keys: {list(api_keys.keys())}")
+    return api_keys
 
-# Get API key
-RAPID7_API_KEY = get_api_key()
+# Get API keys
+RAPID7_API_KEYS = get_api_keys()
+print(f"Loaded API keys: {RAPID7_API_KEYS}")
 
 app = FastAPI(title="Garden Tools")
 
@@ -97,30 +112,48 @@ async def convert_query(
 
 @app.get("/rapid7-metrics", response_class=HTMLResponse)
 async def rapid7_metrics_form(request: Request):
+    clients = list(RAPID7_API_KEYS.keys())
+    print(f"Available clients for dropdown: {clients}")
     return templates.TemplateResponse(
         "rapid7_metrics.html",
-        {"request": request, "title": "Rapid7 Metrics"}
+        {
+            "request": request,
+            "title": "Rapid7 Metrics",
+            "clients": clients
+        }
     )
 
 @app.post("/rapid7-metrics", response_class=HTMLResponse)
 async def rapid7_metrics_calculate(
     request: Request,
+    client: str = Form(...),
     start_date: str = Form(...),
-    end_date: str = Form(...)
+    start_time: str = Form(...),
+    end_date: str = Form(...),
+    end_time: str = Form(...)
 ):
-    if not RAPID7_API_KEY:
+    client_config = RAPID7_API_KEYS.get(client)
+    if not client_config:
         return templates.TemplateResponse(
             "rapid7_metrics.html",
             {
                 "request": request,
                 "title": "Rapid7 Metrics",
-                "error": "Rapid7 API key not found in .env file. Please set RAPID7_API_KEY in your .env file."
+                "clients": list(RAPID7_API_KEYS.keys()),
+                "error": f"Configuration not found for {client}. Please check your .env file."
             }
         )
 
     try:
-        metrics = Rapid7Metrics(RAPID7_API_KEY)
-        results = metrics.calculate_metrics(start_date, end_date)
+        # Combine date and time
+        start_datetime = f"{start_date}T{start_time}:00Z"
+        end_datetime = f"{end_date}T{end_time}:00Z"
+        
+        metrics = Rapid7Metrics(
+            api_key=client_config['api_key'],
+            api_url=client_config['api_url']
+        )
+        results = metrics.calculate_metrics(start_datetime, end_datetime)
         
         if "error" in results:
             return templates.TemplateResponse(
@@ -128,6 +161,7 @@ async def rapid7_metrics_calculate(
                 {
                     "request": request,
                     "title": "Rapid7 Metrics",
+                    "clients": list(RAPID7_API_KEYS.keys()),
                     "error": results["error"]
                 }
             )
@@ -137,6 +171,8 @@ async def rapid7_metrics_calculate(
             {
                 "request": request,
                 "title": "Rapid7 Metrics",
+                "clients": list(RAPID7_API_KEYS.keys()),
+                "selected_client": client,
                 "results": results
             }
         )
@@ -146,6 +182,7 @@ async def rapid7_metrics_calculate(
             {
                 "request": request,
                 "title": "Rapid7 Metrics",
+                "clients": list(RAPID7_API_KEYS.keys()),
                 "error": str(e)
             }
         )

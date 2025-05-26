@@ -4,10 +4,11 @@ from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 
 class Rapid7Metrics:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, api_url: str = "https://us3.api.insight.rapid7.com"):
         self.api_key = api_key
-        self.investigation_url = "https://us3.api.insight.rapid7.com/idr/v1/investigations"
-        self.comments_url = "https://us3.api.insight.rapid7.com/idr/v1/comments?target="
+        self.api_url = api_url.rstrip('/')  # Remove trailing slash if present
+        self.investigation_url = f"{self.api_url}/idr/v1/investigations"
+        self.comments_url = f"{self.api_url}/idr/v1/comments?target="
         self.headers = {
             "X-Api-Key": api_key,
             "Content-Type": "application/json"
@@ -15,8 +16,9 @@ class Rapid7Metrics:
 
     def fetch_investigations(self, start_date: str, end_date: str) -> List[Dict]:
         """Fetches investigations from Rapid7 API based on date range."""
-        start_time = f"{start_date}T00:00:00Z"
-        end_time = f"{end_date}T23:59:00Z"
+        # The input is already in ISO format with time
+        start_time = start_date
+        end_time = end_date
         
         all_investigations = []
         index = 0
@@ -43,6 +45,13 @@ class Rapid7Metrics:
                     
                 index += size  # Move to next page
                 
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 401:
+                    raise Exception("Invalid or expired API key. Please check your API key in the .env file.")
+                elif e.response.status_code == 403:
+                    raise Exception("API key does not have sufficient permissions to access this resource.")
+                else:
+                    raise Exception(f"Error fetching investigations: {str(e)}")
             except requests.exceptions.RequestException as e:
                 raise Exception(f"Error fetching investigations: {str(e)}")
 
@@ -103,10 +112,13 @@ class Rapid7Metrics:
         total_mttr = 0
         count_mttd = 0
         count_mttr = 0
+        event_details = []
         
         for inv in investigations:
             rrn = inv.get("rrn")
             created_time = inv.get("created_time")
+            title = inv.get("title", "Untitled Investigation")
+            status = inv.get("status", "Unknown")
 
             if not rrn or not created_time:
                 continue
@@ -124,6 +136,17 @@ class Rapid7Metrics:
                 total_mttr += mttr
                 count_mttr += 1
 
+            # Add event details
+            event_details.append({
+                "title": title,
+                "status": status,
+                "created_time": created_time,
+                "ttd": self.format_time(mttd),
+                "ttr": self.format_time(mttr),
+                "raw_ttd": mttd,
+                "raw_ttr": mttr
+            })
+
         overall_mttd = total_mttd / count_mttd if count_mttd > 0 else None
         overall_mttr = total_mttr / count_mttr if count_mttr > 0 else None
 
@@ -133,5 +156,6 @@ class Rapid7Metrics:
             "mttd": self.format_time(overall_mttd),
             "mttr": self.format_time(overall_mttr),
             "raw_mttd": overall_mttd,
-            "raw_mttr": overall_mttr
+            "raw_mttr": overall_mttr,
+            "event_details": event_details
         } 
