@@ -311,15 +311,22 @@ async def process_device_comparison(
     min_hours: int = Form(24),
     max_hours: int = Form(100)
 ):
+    print("\n=== Starting Device Comparison Process ===")
+    print(f"Received files: JC={jc_file.filename}, Sentinels={sentinels_file.filename}, Agents={agents_file.filename}, Mapping={mapping_file.filename}")
+    print(f"Time range: {min_hours}-{max_hours} hours")
+    
     temp_dir = None
     try:
         # Create temporary directory for files
         temp_dir = Path("temp")
-        if temp_dir.exists():
-            shutil.rmtree(temp_dir)
-        temp_dir.mkdir(exist_ok=True)
+        print(f"\nCreating temporary directory at: {temp_dir.absolute()}")
         
-        print(f"Created temporary directory at: {temp_dir.absolute()}")
+        if temp_dir.exists():
+            print("Removing existing temp directory...")
+            shutil.rmtree(temp_dir)
+        
+        temp_dir.mkdir(exist_ok=True)
+        print("Temporary directory created successfully")
         
         # Save uploaded files
         jc_path = temp_dir / "jc_devices.csv"
@@ -330,54 +337,83 @@ async def process_device_comparison(
         
         # Save required files with proper encoding
         try:
+            print("\nSaving JumpCloud file...")
             content = await jc_file.read()
+            print(f"Read {len(content)} bytes from JumpCloud file")
             with open(jc_path, "wb") as f:
                 f.write(content)
-            print(f"Saved JumpCloud file: {jc_path}")
+            print(f"Successfully saved JumpCloud file to: {jc_path}")
         except Exception as e:
-            print(f"Error saving JumpCloud file: {str(e)}")
+            print(f"ERROR saving JumpCloud file: {str(e)}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=f"Error saving JumpCloud file: {str(e)}")
 
         try:
+            print("\nSaving Sentinels file...")
             content = await sentinels_file.read()
+            print(f"Read {len(content)} bytes from Sentinels file")
             with open(sentinels_path, "wb") as f:
                 f.write(content)
-            print(f"Saved Sentinels file: {sentinels_path}")
+            print(f"Successfully saved Sentinels file to: {sentinels_path}")
         except Exception as e:
-            print(f"Error saving Sentinels file: {str(e)}")
+            print(f"ERROR saving Sentinels file: {str(e)}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=f"Error saving Sentinels file: {str(e)}")
 
         try:
+            print("\nSaving Agents file...")
             content = await agents_file.read()
+            print(f"Read {len(content)} bytes from Agents file")
             with open(agents_path, "wb") as f:
                 f.write(content)
-            print(f"Saved Agents file: {agents_path}")
+            print(f"Successfully saved Agents file to: {agents_path}")
         except Exception as e:
-            print(f"Error saving Agents file: {str(e)}")
+            print(f"ERROR saving Agents file: {str(e)}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=f"Error saving Agents file: {str(e)}")
 
         try:
+            print("\nSaving Mapping file...")
             content = await mapping_file.read()
+            print(f"Read {len(content)} bytes from Mapping file")
             with open(mapping_path, "wb") as f:
                 f.write(content)
-            print(f"Saved Mapping file: {mapping_path}")
+            print(f"Successfully saved Mapping file to: {mapping_path}")
         except Exception as e:
-            print(f"Error saving Mapping file: {str(e)}")
+            print(f"ERROR saving Mapping file: {str(e)}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=f"Error saving Mapping file: {str(e)}")
         
         # Save optional NS file if provided
         if ns_file:
             try:
+                print("\nSaving NS file...")
                 content = await ns_file.read()
+                print(f"Read {len(content)} bytes from NS file")
                 with open(ns_path, "wb") as f:
                     f.write(content)
-                print(f"Saved NS file: {ns_path}")
+                print(f"Successfully saved NS file to: {ns_path}")
             except Exception as e:
-                print(f"Warning: Error saving NS file: {str(e)}")
+                print(f"WARNING: Error saving NS file: {str(e)}")
+                print(f"Error type: {type(e)}")
+                import traceback
+                print(f"Traceback: {traceback.format_exc()}")
         
         # Process the files
         try:
-            print("Starting device comparison...")
+            print("\nStarting device comparison...")
+            print(f"Using files: JC={jc_path}, Sentinels={sentinels_path}, Agents={agents_path}, Mapping={mapping_path}")
+            if ns_path:
+                print(f"Optional NS file: {ns_path}")
+            
             result_df = compare_devices(
                 str(jc_path),
                 str(sentinels_path),
@@ -388,19 +424,28 @@ async def process_device_comparison(
                 max_hours
             )
             print("Device comparison completed successfully")
+            print(f"Result DataFrame shape: {result_df.shape}")
         except Exception as e:
-            print(f"Error during device comparison: {str(e)}")
+            print(f"ERROR during device comparison: {str(e)}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=f"Error during device comparison: {str(e)}")
         
         # Create response
         try:
+            print("\nCreating CSV output...")
             output = io.StringIO()
             result_df.to_csv(output, index=False, encoding='utf-8-sig')
             print("CSV output created successfully")
         except Exception as e:
-            print(f"Error creating CSV output: {str(e)}")
+            print(f"ERROR creating CSV output: {str(e)}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=f"Error creating CSV output: {str(e)}")
         
+        print("\n=== Device Comparison Process Completed Successfully ===")
         # Return the CSV file
         return StreamingResponse(
             iter([output.getvalue()]),
@@ -411,11 +456,11 @@ async def process_device_comparison(
         )
         
     except HTTPException as he:
-        # Re-raise HTTP exceptions
+        print(f"\nHTTP Exception: {str(he)}")
         raise he
     except Exception as e:
-        # Log the full error
-        print(f"Unexpected error: {str(e)}")
+        print(f"\nUNEXPECTED ERROR: {str(e)}")
+        print(f"Error type: {type(e)}")
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
@@ -423,10 +468,14 @@ async def process_device_comparison(
         # Clean up temporary files
         if temp_dir and temp_dir.exists():
             try:
+                print("\nCleaning up temporary files...")
                 shutil.rmtree(temp_dir)
-                print(f"Cleaned up temporary directory: {temp_dir}")
+                print("Temporary files cleaned up successfully")
             except Exception as e:
-                print(f"Warning: Error cleaning up temporary directory: {str(e)}")
+                print(f"WARNING: Error cleaning up temporary directory: {str(e)}")
+                print(f"Error type: {type(e)}")
+                import traceback
+                print(f"Traceback: {traceback.format_exc()}")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
