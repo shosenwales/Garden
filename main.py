@@ -15,6 +15,19 @@ import shutil
 from pathlib import Path
 import io
 import pandas as pd
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('app.log')
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 print("Current working directory:", os.getcwd())
@@ -298,10 +311,15 @@ async def process_device_comparison(
     min_hours: int = Form(24),
     max_hours: int = Form(100)
 ):
+    temp_dir = None
     try:
         # Create temporary directory for files
         temp_dir = Path("temp")
+        if temp_dir.exists():
+            shutil.rmtree(temp_dir)
         temp_dir.mkdir(exist_ok=True)
+        
+        print(f"Created temporary directory at: {temp_dir.absolute()}")
         
         # Save uploaded files
         jc_path = temp_dir / "jc_devices.csv"
@@ -310,38 +328,72 @@ async def process_device_comparison(
         mapping_path = temp_dir / "mapping.csv"
         ns_path = temp_dir / "ns_users.csv" if ns_file else None
         
-        # Save required files
-        with open(jc_path, "wb") as f:
-            f.write(await jc_file.read())
-        with open(sentinels_path, "wb") as f:
-            f.write(await sentinels_file.read())
-        with open(agents_path, "wb") as f:
-            f.write(await agents_file.read())
-        with open(mapping_path, "wb") as f:
-            f.write(await mapping_file.read())
+        # Save required files with error handling
+        try:
+            with open(jc_path, "wb") as f:
+                content = await jc_file.read()
+                f.write(content)
+            print(f"Saved JumpCloud file: {jc_path}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error saving JumpCloud file: {str(e)}")
+
+        try:
+            with open(sentinels_path, "wb") as f:
+                content = await sentinels_file.read()
+                f.write(content)
+            print(f"Saved Sentinels file: {sentinels_path}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error saving Sentinels file: {str(e)}")
+
+        try:
+            with open(agents_path, "wb") as f:
+                content = await agents_file.read()
+                f.write(content)
+            print(f"Saved Agents file: {agents_path}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error saving Agents file: {str(e)}")
+
+        try:
+            with open(mapping_path, "wb") as f:
+                content = await mapping_file.read()
+                f.write(content)
+            print(f"Saved Mapping file: {mapping_path}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error saving Mapping file: {str(e)}")
         
         # Save optional NS file if provided
         if ns_file:
-            with open(ns_path, "wb") as f:
-                f.write(await ns_file.read())
+            try:
+                with open(ns_path, "wb") as f:
+                    content = await ns_file.read()
+                    f.write(content)
+                print(f"Saved NS file: {ns_path}")
+            except Exception as e:
+                print(f"Warning: Error saving NS file: {str(e)}")
         
         # Process the files
-        result_df = compare_devices(
-            str(jc_path),
-            str(sentinels_path),
-            str(agents_path),
-            str(mapping_path),
-            str(ns_path) if ns_path else None,
-            min_hours,
-            max_hours
-        )
+        try:
+            print("Starting device comparison...")
+            result_df = compare_devices(
+                str(jc_path),
+                str(sentinels_path),
+                str(agents_path),
+                str(mapping_path),
+                str(ns_path) if ns_path else None,
+                min_hours,
+                max_hours
+            )
+            print("Device comparison completed successfully")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error during device comparison: {str(e)}")
         
         # Create response
-        output = io.StringIO()
-        result_df.to_csv(output, index=False)
-        
-        # Clean up temporary files
-        shutil.rmtree(temp_dir)
+        try:
+            output = io.StringIO()
+            result_df.to_csv(output, index=False)
+            print("CSV output created successfully")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error creating CSV output: {str(e)}")
         
         # Return the CSV file
         return StreamingResponse(
@@ -352,11 +404,23 @@ async def process_device_comparison(
             }
         )
         
+    except HTTPException as he:
+        # Re-raise HTTP exceptions
+        raise he
     except Exception as e:
-        # Clean up temporary files in case of error
-        if temp_dir.exists():
-            shutil.rmtree(temp_dir)
-        raise HTTPException(status_code=500, detail=str(e))
+        # Log the full error
+        print(f"Unexpected error: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+    finally:
+        # Clean up temporary files
+        if temp_dir and temp_dir.exists():
+            try:
+                shutil.rmtree(temp_dir)
+                print(f"Cleaned up temporary directory: {temp_dir}")
+            except Exception as e:
+                print(f"Warning: Error cleaning up temporary directory: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
