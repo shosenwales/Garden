@@ -319,7 +319,7 @@ async def process_device_comparison(
             shutil.rmtree(temp_dir)
         temp_dir.mkdir(exist_ok=True)
         
-        logger.info(f"Created temporary directory at: {temp_dir.absolute()}")
+        print(f"Created temporary directory at: {temp_dir.absolute()}")
         
         # Save uploaded files
         jc_path = temp_dir / "jc_devices.csv"
@@ -333,36 +333,36 @@ async def process_device_comparison(
             content = await jc_file.read()
             with open(jc_path, "wb") as f:
                 f.write(content)
-            logger.info(f"Saved JumpCloud file: {jc_path}")
+            print(f"Saved JumpCloud file: {jc_path}")
         except Exception as e:
-            logger.error(f"Error saving JumpCloud file: {str(e)}")
+            print(f"Error saving JumpCloud file: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error saving JumpCloud file: {str(e)}")
 
         try:
             content = await sentinels_file.read()
             with open(sentinels_path, "wb") as f:
                 f.write(content)
-            logger.info(f"Saved Sentinels file: {sentinels_path}")
+            print(f"Saved Sentinels file: {sentinels_path}")
         except Exception as e:
-            logger.error(f"Error saving Sentinels file: {str(e)}")
+            print(f"Error saving Sentinels file: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error saving Sentinels file: {str(e)}")
 
         try:
             content = await agents_file.read()
             with open(agents_path, "wb") as f:
                 f.write(content)
-            logger.info(f"Saved Agents file: {agents_path}")
+            print(f"Saved Agents file: {agents_path}")
         except Exception as e:
-            logger.error(f"Error saving Agents file: {str(e)}")
+            print(f"Error saving Agents file: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error saving Agents file: {str(e)}")
 
         try:
             content = await mapping_file.read()
             with open(mapping_path, "wb") as f:
                 f.write(content)
-            logger.info(f"Saved Mapping file: {mapping_path}")
+            print(f"Saved Mapping file: {mapping_path}")
         except Exception as e:
-            logger.error(f"Error saving Mapping file: {str(e)}")
+            print(f"Error saving Mapping file: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error saving Mapping file: {str(e)}")
         
         # Save optional NS file if provided
@@ -371,13 +371,13 @@ async def process_device_comparison(
                 content = await ns_file.read()
                 with open(ns_path, "wb") as f:
                     f.write(content)
-                logger.info(f"Saved NS file: {ns_path}")
+                print(f"Saved NS file: {ns_path}")
             except Exception as e:
-                logger.warning(f"Warning: Error saving NS file: {str(e)}")
+                print(f"Warning: Error saving NS file: {str(e)}")
         
         # Process the files
         try:
-            logger.info("Starting device comparison...")
+            print("Starting device comparison...")
             result_df = compare_devices(
                 str(jc_path),
                 str(sentinels_path),
@@ -387,18 +387,18 @@ async def process_device_comparison(
                 min_hours,
                 max_hours
             )
-            logger.info("Device comparison completed successfully")
+            print("Device comparison completed successfully")
         except Exception as e:
-            logger.error(f"Error during device comparison: {str(e)}")
+            print(f"Error during device comparison: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error during device comparison: {str(e)}")
         
         # Create response
         try:
             output = io.StringIO()
             result_df.to_csv(output, index=False, encoding='utf-8-sig')
-            logger.info("CSV output created successfully")
+            print("CSV output created successfully")
         except Exception as e:
-            logger.error(f"Error creating CSV output: {str(e)}")
+            print(f"Error creating CSV output: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Error creating CSV output: {str(e)}")
         
         # Return the CSV file
@@ -415,18 +415,18 @@ async def process_device_comparison(
         raise he
     except Exception as e:
         # Log the full error
-        logger.error(f"Unexpected error: {str(e)}")
+        print(f"Unexpected error: {str(e)}")
         import traceback
-        logger.error(f"Traceback: {traceback.format_exc()}")
+        print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
     finally:
         # Clean up temporary files
         if temp_dir and temp_dir.exists():
             try:
                 shutil.rmtree(temp_dir)
-                logger.info(f"Cleaned up temporary directory: {temp_dir}")
+                print(f"Cleaned up temporary directory: {temp_dir}")
             except Exception as e:
-                logger.warning(f"Warning: Error cleaning up temporary directory: {str(e)}")
+                print(f"Warning: Error cleaning up temporary directory: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
