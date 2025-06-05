@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex items-center mb-6">
+        <a href="/" class="text-primary hover:text-blue-400 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+        </a>
+        <h2 class="text-2xl font-bold ml-4">Device Comparator</h2>
+    </div>
+    
+    <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+        {% if error %}
+        <div class="mb-6 p-4 bg-red-900/50 border border-red-700 rounded-md">
+            <p class="text-red-200">{{ error }}</p>
+        </div>
+        {% endif %}
+        
+        <form id="uploadForm" action="/device-comparator" method="post" enctype="multipart/form-data" class="space-y-6">
+            <div class="space-y-4">
+                <div class="upload-area p-6 border-2 border-dashed border-gray-600 rounded-lg text-center hover:border-primary transition-colors" id="jcDropZone">
+                    <input type="file" class="hidden" id="jc_file" name="jc_file" required accept=".csv,.xlsx,.xls">
+                    <div class="upload-icon mb-4">
+                        <svg class="w-12 h-12 text-primary mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </div>
+                    <h5 class="text-lg font-medium text-gray-200 mb-2">JumpCloud Device File</h5>
+                    <p class="text-gray-400 mb-4">or click to browse file</p>
+                    <button type="button" class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors" onclick="document.getElementById('jc_file').click()">
+                        Select File
+                    </button>
+                </div>
+                <div id="jc_file_name" class="space-y-2"></div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="upload-area p-6 border-2 border-dashed border-gray-600 rounded-lg text-center hover:border-primary transition-colors" id="sentinelsDropZone">
+                    <input type="file" class="hidden" id="sentinels_file" name="sentinels_file" required accept=".csv,.xlsx,.xls">
+                    <div class="upload-icon mb-4">
+                        <svg class="w-12 h-12 text-primary mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </div>
+                    <h5 class="text-lg font-medium text-gray-200 mb-2">SentinelOne File</h5>
+                    <p class="text-gray-400 mb-4">or click to browse file</p>
+                    <button type="button" class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors" onclick="document.getElementById('sentinels_file').click()">
+                        Select File
+                    </button>
+                </div>
+                <div id="sentinels_file_name" class="space-y-2"></div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="upload-area p-6 border-2 border-dashed border-gray-600 rounded-lg text-center hover:border-primary transition-colors" id="agentsDropZone">
+                    <input type="file" class="hidden" id="agents_file" name="agents_file" required accept=".csv,.xlsx,.xls">
+                    <div class="upload-icon mb-4">
+                        <svg class="w-12 h-12 text-primary mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </div>
+                    <h5 class="text-lg font-medium text-gray-200 mb-2">Rapid7 Agents File</h5>
+                    <p class="text-gray-400 mb-4">or click to browse file</p>
+                    <button type="button" class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors" onclick="document.getElementById('agents_file').click()">
+                        Select File
+                    </button>
+                </div>
+                <div id="agents_file_name" class="space-y-2"></div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="upload-area p-6 border-2 border-dashed border-gray-600 rounded-lg text-center hover:border-primary transition-colors" id="mappingDropZone">
+                    <input type="file" class="hidden" id="mapping_file" name="mapping_file" required accept=".csv,.xlsx,.xls">
+                    <div class="upload-icon mb-4">
+                        <svg class="w-12 h-12 text-primary mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </div>
+                    <h5 class="text-lg font-medium text-gray-200 mb-2">Mapping File</h5>
+                    <p class="text-gray-400 mb-4">or click to browse file</p>
+                    <button type="button" class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors" onclick="document.getElementById('mapping_file').click()">
+                        Select File
+                    </button>
+                </div>
+                <div id="mapping_file_name" class="space-y-2"></div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="upload-area p-6 border-2 border-dashed border-gray-600 rounded-lg text-center hover:border-primary transition-colors" id="nsDropZone">
+                    <input type="file" class="hidden" id="ns_file" name="ns_file" accept=".csv,.xlsx,.xls">
+                    <div class="upload-icon mb-4">
+                        <svg class="w-12 h-12 text-primary mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </div>
+                    <h5 class="text-lg font-medium text-gray-200 mb-2">NetSkope Users File</h5>
+                    <p class="text-gray-400 mb-4">or click to browse file</p>
+                    <button type="button" class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md transition-colors" onclick="document.getElementById('ns_file').click()">
+                        Select File
+                    </button>
+                </div>
+                <div id="ns_file_name" class="space-y-2"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="min_hours" class="block text-sm font-medium text-gray-300 mb-1">Minimum Hours Since Last Report</label>
+                    <input type="number" id="min_hours" name="min_hours" value="24" min="1" max="1000"
+                           class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                <div>
+                    <label for="max_hours" class="block text-sm font-medium text-gray-300 mb-1">Maximum Hours Since Last Report</label>
+                    <input type="number" id="max_hours" name="max_hours" value="100" min="1" max="1000"
+                           class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+            </div>
+            
+            <button type="submit" 
+                    class="w-full bg-primary hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-md transition-colors text-lg" 
+                    id="processButton" 
+                    disabled>
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                Process Files
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 bg-gray-900/90 flex items-center justify-center z-50 hidden">
+    <div class="text-center">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary mx-auto mb-8"></div>
+        <div class="max-w-md mx-auto">
+            <div id="loadingJoke" class="text-xl mb-4"></div>
+            <p class="text-gray-400">Processing files...</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.upload-area {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    background-color: rgba(59, 130, 246, 0.1);
+    border-radius: 0.5rem;
+}
+
+.file-item svg {
+    width: 20px;
+    height: 20px;
+    margin-right: 0.75rem;
+    color: #3b82f6;
+}
+
+#processButton:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background-color: #4b5563;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('uploadForm');
+    const processButton = document.getElementById('processButton');
+    const spinner = processButton.querySelector('.spinner-border');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingJoke = document.getElementById('loadingJoke');
+
+    // SOC Jokes
+    const socJokes = [
+        {
+            question: "🤔 Why did the SOC analyst go to the beach?",
+            answer: "🏖️ To catch some malware! 🦠"
+        },
+        {
+            question: "🤔 What do you call a SOC analyst who's always late?",
+            answer: "⏰ A false positive! ❌"
+        },
+        {
+            question: "🤔 Why did the firewall go to therapy?",
+            answer: "🧘 It had too many blocked connections! 🚫"
+        },
+        {
+            question: "🤔 What's a SOC analyst's favorite dance?",
+            answer: "💃 The Security Shuffle! 🕺"
+        },
+        {
+            question: "🤔 Why did the SIEM go to the doctor?",
+            answer: "🏥 It had too many alerts! 🔔"
+        },
+        {
+            question: "🤔 What do you call a SOC analyst who's good at math?",
+            answer: "🧮 A threat calculator! 📊"
+        },
+        {
+            question: "🤔 Why did the security team get kicked out of the bar?",
+            answer: "🍻 They were causing too many incidents! 🚨"
+        },
+        {
+            question: "🤔 What's a SOC analyst's favorite movie?",
+            answer: "🎬 The Matrix - they love watching code! 💻"
+        },
+        {
+            question: "🤔 Why did the malware go to school?",
+            answer: "📚 To get a better education on how to infect! 🎓"
+        },
+        {
+            question: "🤔 What do you call a SOC analyst who's always happy?",
+            answer: "😊 A positive security outlook! ✨"
+        }
+    ];
+
+    function getRandomJoke() {
+        const joke = socJokes[Math.floor(Math.random() * socJokes.length)];
+        return `${joke.question}\n${joke.answer}`;
+    }
+
+    // Update joke every 5 seconds while loading
+    let jokeInterval;
+    function startJokeInterval() {
+        loadingJoke.innerHTML = getRandomJoke().replace('\n', '<br>');
+        jokeInterval = setInterval(() => {
+            loadingJoke.innerHTML = getRandomJoke().replace('\n', '<br>');
+        }, 5000);
+    }
+
+    function stopJokeInterval() {
+        clearInterval(jokeInterval);
+    }
+
+    // Setup drop zones
+    const dropZones = {
+        'jc': document.getElementById('jcDropZone'),
+        'sentinels': document.getElementById('sentinelsDropZone'),
+        'agents': document.getElementById('agentsDropZone'),
+        'mapping': document.getElementById('mappingDropZone'),
+        'ns': document.getElementById('nsDropZone')
+    };
+
+    // Setup file inputs
+    const fileInputs = {
+        'jc': document.getElementById('jc_file'),
+        'sentinels': document.getElementById('sentinels_file'),
+        'agents': document.getElementById('agents_file'),
+        'mapping': document.getElementById('mapping_file'),
+        'ns': document.getElementById('ns_file')
+    };
+
+    // Setup file name displays
+    const fileNameDisplays = {
+        'jc': document.getElementById('jc_file_name'),
+        'sentinels': document.getElementById('sentinels_file_name'),
+        'agents': document.getElementById('agents_file_name'),
+        'mapping': document.getElementById('mapping_file_name'),
+        'ns': document.getElementById('ns_file_name')
+    };
+
+    // Setup each drop zone
+    Object.keys(dropZones).forEach(key => {
+        const dropZone = dropZones[key];
+        const input = fileInputs[key];
+        const display = fileNameDisplays[key];
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropZone.classList.add('border-primary');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('border-primary');
+        }
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            input.files = files;
+            input.dispatchEvent(new Event('change'));
+        }
+
+        input.addEventListener('change', function(e) {
+            display.innerHTML = '';
+            if (this.files.length > 0) {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span class="text-gray-200">${this.files[0].name}</span>
+                `;
+                display.appendChild(item);
+            }
+            updateProcessButton();
+        });
+    });
+
+    // Update process button state
+    function updateProcessButton() {
+        const requiredFiles = ['jc', 'sentinels', 'agents', 'mapping'];
+        const allRequiredFilesPresent = requiredFiles.every(key => fileInputs[key].files.length > 0);
+        processButton.disabled = !allRequiredFilesPresent;
+    }
+
+    // Handle form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        processButton.disabled = true;
+        spinner.classList.remove('d-none');
+        loadingOverlay.classList.remove('hidden');
+        startJokeInterval();
+        
+        try {
+            const formData = new FormData(form);
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            // Get the filename from the Content-Disposition header
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = 'device_comparison_results.csv';
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (filenameMatch) {
+                    filename = filenameMatch[1];
+                }
+            }
+
+            // Get the blob from the response
+            const blob = await response.blob();
+            
+            // Create a download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            
+            // Append to the document, click it, and remove it
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while processing the files. Please try again.');
+        } finally {
+            processButton.disabled = false;
+            spinner.classList.add('d-none');
+            loadingOverlay.classList.add('hidden');
+            stopJokeInterval();
+        }
+    });
+});
+</script>
+{% endblock %} 

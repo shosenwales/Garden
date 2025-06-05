@@ -6,6 +6,7 @@ from tools.rapid7_metrics import Rapid7Metrics
 from tools.insightvm_processor import process_insightvm_files
 from tools.query_converter import QueryConverter, QueryLanguage
 from tools.pdf_to_word import router as pdf_to_word_router
+from tools.device_comparator import compare_devices
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -276,6 +277,86 @@ async def pdf_to_word_form(request: Request):
         "pdf_to_word.html",
         {"request": request, "title": "PDF to Word Converter"}
     )
+
+@app.get("/device-comparator", response_class=HTMLResponse)
+async def device_comparator_form(request: Request):
+    return templates.TemplateResponse(
+        "device_comparator.html",
+        {
+            "request": request,
+            "title": "Device Comparator"
+        }
+    )
+
+@app.post("/device-comparator")
+async def process_device_comparison(
+    jc_file: UploadFile = File(...),
+    sentinels_file: UploadFile = File(...),
+    agents_file: UploadFile = File(...),
+    mapping_file: UploadFile = File(...),
+    ns_file: UploadFile = None,
+    min_hours: int = Form(24),
+    max_hours: int = Form(100)
+):
+    try:
+        # Create temporary directory for files
+        temp_dir = Path("temp")
+        temp_dir.mkdir(exist_ok=True)
+        
+        # Save uploaded files
+        jc_path = temp_dir / "jc_devices.csv"
+        sentinels_path = temp_dir / "sentinels.csv"
+        agents_path = temp_dir / "agents.csv"
+        mapping_path = temp_dir / "mapping.csv"
+        ns_path = temp_dir / "ns_users.csv" if ns_file else None
+        
+        # Save required files
+        with open(jc_path, "wb") as f:
+            f.write(await jc_file.read())
+        with open(sentinels_path, "wb") as f:
+            f.write(await sentinels_file.read())
+        with open(agents_path, "wb") as f:
+            f.write(await agents_file.read())
+        with open(mapping_path, "wb") as f:
+            f.write(await mapping_file.read())
+        
+        # Save optional NS file if provided
+        if ns_file:
+            with open(ns_path, "wb") as f:
+                f.write(await ns_file.read())
+        
+        # Process the files
+        result_df = compare_devices(
+            str(jc_path),
+            str(sentinels_path),
+            str(agents_path),
+            str(mapping_path),
+            str(ns_path) if ns_path else None,
+            min_hours,
+            max_hours
+        )
+        
+        # Create response
+        output = io.StringIO()
+        result_df.to_csv(output, index=False)
+        
+        # Clean up temporary files
+        shutil.rmtree(temp_dir)
+        
+        # Return the CSV file
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="device_comparison_results.csv"'
+            }
+        )
+        
+    except Exception as e:
+        # Clean up temporary files in case of error
+        if temp_dir.exists():
+            shutil.rmtree(temp_dir)
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 
